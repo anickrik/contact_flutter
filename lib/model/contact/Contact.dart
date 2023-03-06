@@ -26,5 +26,4 @@ class Contact{
   String imagePath;
 
   Contact(this.firstName, this.lastName,this.mobileNo,this.emailId, this.categoryName, this.categoryId, this.imagePath);
-
 }

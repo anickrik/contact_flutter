@@ -18,6 +18,7 @@ class AddContactScreen extends StatefulWidget {
 String dropDownValue = "Select Category";
 
 List<Map<String, dynamic>> category = [];
+List<CategoryValue> categoryList = [];
 
 class _AddContactScreenState extends State<AddContactScreen> {
   @override
@@ -29,8 +30,15 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
   void refreshCategory() async {
     final data = await SQLHelper.getCategories();
+    debugPrint(data[0]['name']);
+
     setState(() {
       category = data;
+      categoryList = List<CategoryValue>.from(
+          category.map((i){
+            return CategoryValue.fromJSON(i);
+          })
+      );
     });
   }
 
@@ -65,6 +73,16 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
   File? _image;
 
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    fNameController.dispose();
+    lNameController.dispose();
+    mobileNumberController.dispose();
+    emailIDController.dispose();
+  }
+
   Future getImage(ImageSource source) async {
     try {
       final image = await _picker.pickImage(source: source, imageQuality: 10);
@@ -78,43 +96,57 @@ class _AddContactScreenState extends State<AddContactScreen> {
     }
   }
 
-  String? firstname;
-  String? lastname;
-  String? emailId;
-  String? mobileNo;
-  String? categoryName;
-  int? categoryId;
+  TextEditingController fNameController = TextEditingController();
+  TextEditingController lNameController = TextEditingController();
+  TextEditingController mobileNumberController = TextEditingController();
+  TextEditingController emailIDController = TextEditingController();
+
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final formKey = GlobalKey<FormState>();
 
   saveContact() {
     if (formKey.currentState!.validate()) {
       formKey.currentState!.save();
+      String fname = fNameController.text;
+      String lname = lNameController.text;
+      String mobileNum = mobileNumberController.text;
+      String emailID = emailIDController.text;
+      saveContactFromSave(fname, lname, mobileNum, emailID, dropValue, _image?.path ?? "no image");
+      fNameController.clear();
+      lNameController.clear();
+      mobileNumberController.clear();
+      emailIDController.clear();
+      _image = null;
+      dropValue = "1";
     }
   }
 
-  String dropdownvalue = 'Item 11';
-  String dvalue = 'meet';
+  String dropValue = "1";
 
-  // List of items in our dropdown menu
-  var items = [
-    'Item 1',
-    'Item 2',
-    'Item 3',
-    'Item 4',
-    'Item 5',
-  ];
+  //serialize city-list json data to object model.
 
-  static const Map<String, Duration> frequencyOptions = {
-    "30 seconds": Duration(seconds: 30),
-    "1 minute": Duration(minutes: 1),
-    "2 minutes": Duration(minutes: 2),
-  };
+  void saveContactFromSave(String fName, String lName, String mobileNumber, String emailID, String categoryID, String imagePath, {int? id}) async {
+    FocusScope.of(context).unfocus();
+      if (id == null) {
+        print("got id from saveCategory is $id is null");
+        // CategoriesDatabase.instance.update(Category(name: categoryName));
+        final resultId = await SQLHelper.saveContact(fName, lName, mobileNumber, emailID, categoryID, imagePath);
+        debugPrint("Contact saved successfully $resultId");
+         Utils.snackBar("Contact saved successfully $resultId", context);
+      } else {
+        print("got id from saveCategory is $id is not null");
+        // String newValue = textEditingController.text;
+        // final resultId = await SQLHelper.updateCategory(id, newValue);
+        // CategoriesDatabase.instance.update(Category(name: newValue,id: id));
 
-  Duration _frequencyValue = Duration(seconds: 30);
+      }
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    debugPrint(categoryList.length.toString());
+
     return Scaffold(
       key: scaffoldKey,
       appBar: AppBar(
@@ -153,6 +185,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
                 child: Column(
                   children: [
                     TextFormField(
+                      controller: fNameController,
                       decoration: const InputDecoration(hintText: "First Name"),
                       validator: (val) =>
                       val?.length == 0 ? "Enter FirstName" : null,
@@ -161,6 +194,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
                       height: 20,
                     ),
                     TextFormField(
+                      controller: lNameController,
                       decoration: const InputDecoration(hintText: "Last Name"),
                       validator: (val) =>
                       val?.length == 0 ? "Enter LastName" : null,
@@ -169,6 +203,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
                       height: 20,
                     ),
                     TextFormField(
+                      controller: mobileNumberController,
                       decoration:
                           const InputDecoration(hintText: "Mobile Number"),
                       validator: (val) =>
@@ -179,6 +214,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
                       height: 20,
                     ),
                     TextFormField(
+                      controller: emailIDController,
                       decoration: const InputDecoration(hintText: "Email"),
                       validator: (val) =>
                       val?.length == 0 ? "Enter ValidEmail" : null,
@@ -190,7 +226,56 @@ class _AddContactScreenState extends State<AddContactScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      child: cityList(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(width: 1)
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: ButtonTheme(
+                            alignedDropdown: true,
+                            child: DropdownButton<String>(
+                              value: dropValue,
+                              hint: const Text("Select Category"),
+                              onChanged: (newValue){
+                                  if(newValue != null){
+                                    setState(() {
+                                      dropValue = newValue;
+                                    });
+                                    debugPrint(newValue);
+                                  }
+                              },
+                              items: categoryList.map((item) {
+                                return DropdownMenuItem<String>(value: item.id.toString() ,child: Text(item.name),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        )
+                        /* DropdownButton<String>(
+                          value: "dropValue",
+                          // value: dropValue.isNotEmpty ? dropValue : null,
+                          borderRadius: BorderRadius.circular(15),
+                          hint: const Text("Select Category"),
+                          isExpanded: true,
+                          items: categoryList.map((categoryOne){
+                            return DropdownMenuItem<String>(
+                              value: "${categoryOne.id}",
+                              child: Text(categoryOne.name),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue){
+                            if (newValue != null) {
+                              setState(() {
+                                dropValue = newValue;
+                              });
+                            }
+
+                            print("Selected Category id is $newValue");
+                          },
+                        ),*/
+                      ),
                     ),
                   ],
                 ),
@@ -210,41 +295,6 @@ class _AddContactScreenState extends State<AddContactScreen> {
   }
 }
 
-
-Widget cityList(){
-
-  String dropValue = "";
-
-  List<CategoryValue> categoryList = List<CategoryValue>.from(
-      category.map((i){
-        return CategoryValue.fromJSON(i);
-      })
-  ); //searilize citylist json data to object model.
-
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 10),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(width: 1)
-    ),
-    child: DropdownButton<String>(
-      // value: dropValue.isNotEmpty ? dropValue : null,
-      borderRadius: BorderRadius.circular(15),
-        hint: const Text("Select Category"),
-        isExpanded: true,
-        items: categoryList.map((categoryOne){
-          return DropdownMenuItem<String>(
-            value: "${categoryOne.id}",
-            child: Text(categoryOne.name),
-          );
-        }).toList(),
-        onChanged: (String ? newValue){
-        dropValue = newValue!;
-          print("Selected Category id is $newValue");
-        },
-    ),
-  );
-}
 
 class CategoryValue{
   int id;

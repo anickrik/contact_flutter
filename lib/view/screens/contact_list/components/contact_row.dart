@@ -1,14 +1,21 @@
+
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class ContactRow extends StatelessWidget {
-  const ContactRow({Key? key, required this.name, required this.number}) : super(key: key);
+  const ContactRow({Key? key, required this.name, required this.number,}) : super(key: key);
 
   final String name;
   final String number;
+  // final String imagePath;
 
 
   @override
   Widget build(BuildContext context) {
+
+    // File? _image = File(imagePath);
     return Container(
       height: 70,
       decoration: BoxDecoration(

@@ -12,6 +12,19 @@ class SQLHelper {
     name TEXT
     )
     """);
+
+  }
+  static Future<void> createContactTable(sql.Database database) async {
+    await database.execute("""CREATE TABLE contacts(
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    fName TEXT,
+    lName TEXT,
+    mobileNumber TEXT,
+    emailID TEXT,
+    categoryID TEXT,
+    imagePath TEXT
+    )
+    """);
   }
 
   static Future<sql.Database> db() async {
@@ -23,6 +36,7 @@ class SQLHelper {
       version: 1,
       onCreate: (sql.Database database, int version) async {
         await createTable(database);
+        await createContactTable(database);
       },
     );
   }
@@ -63,6 +77,26 @@ class SQLHelper {
       debugPrint(
           "Something went wrong while deleting at id = $id and Error is $err");
     }
+  }
+
+  static Future<int> saveContact(String fName, String lName, String mobileNumber, String emailID, String categoryID, String imagePath) async {
+    final db = await SQLHelper.db();
+    final data = {
+      'fName' : fName,
+      'lName': lName,
+      'mobileNumber' : mobileNumber,
+      'emailID' : emailID,
+      'categoryID' : categoryID,
+      'imagePath' : imagePath
+    };
+    final id = await db.insert('contacts', data,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+    return id;
+  }
+
+  static Future<List<Map<String, dynamic>>> getContacts() async {
+    final db = await SQLHelper.db();
+    return db.query('contacts', orderBy: "id");
   }
 
 
